@@ -52,7 +52,7 @@ interface EnquiryPayload {
   files: FilePayload[];
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
