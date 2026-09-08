@@ -20,9 +20,14 @@ const authHeaders = () => ({
   Version: "2021-07-28",
 });
 
+interface FileValue {
+    url: string;
+    meta: { mimetype: string; name: string; size: number };
+}
+
 interface CustomField {
-  id: string;
-  value: string;
+    id: string;
+    value: string | FileValue[];
 }
 
 interface FilePayload {
@@ -93,20 +98,19 @@ export async function POST(req: Request): Promise<Response> {
     // 1. Upsert the contact (creates or updates by email/phone) and get its id.
     const contactId = await upsertContact(body.contact);
 
-    // 2. Upload files to media storage and collect the hosted URLs per field.
-    const fileUrlsByField: Record<string, string[]> = {};
-    for (const f of body.files || []) {
-      try {
-        const url = await uploadMedia(f);
-        (fileUrlsByField[f.fieldId] ||= []).push(url);
-      } catch {
-        // A single failed upload should not block the whole enquiry.
-      }
-    }
-    const fileCustomFields: CustomField[] = Object.entries(fileUrlsByField).map(
-      ([id, urls]) => ({ id, value: urls.join("\n") }),
-    );
-
+        // 2. Upload files to media storage and collect the hosted file objects per field.
+        const filesByField: Record<string, FileValue[]> = {};
+        for (const f of body.files || []) {
+                try {
+                          const file = await uploadMedia(f);
+                          (filesByField[f.fieldId] ||= []).push(file);
+                } catch {
+                          // A single failed upload should not block the whole enquiry.
+                }
+        }
+        const fileCustomFields: CustomField[] = Object.entries(filesByField).map(
+                ([id, files]) => ({ id, value: files }),
+              );
     // 3. Create the opportunity with all custom fields on the opportunity record.
     const allCustomFields = [...body.customFields, ...fileCustomFields];
     const opportunityId = await createOpportunity(
@@ -164,26 +168,32 @@ async function upsertContact(c: ContactPayload): Promise<string> {
   return id;
 }
 
-async function uploadMedia(f: FilePayload): Promise<string> {
-  const bytes = Uint8Array.from(atob(f.dataBase64), (ch) => ch.charCodeAt(0));
-  const blob = new Blob([bytes], {
-    type: f.mimeType || "application/octet-stream",
-  });
-  const form = new FormData();
-  form.append("file", blob, f.filename);
-  form.append("name", f.filename);
-  const res = await fetch(`${API_BASE}/medias/upload-file`, {
-    method: "POST",
-    headers: { ...authHeaders() },
-    body: form,
-  });
-  if (!res.ok) throw new Error(`File upload failed (${res.status}).`);
-  const data = await res.json();
-  const url = data?.url || data?.fileUrl;
-  if (!url) throw new Error("File upload returned no url.");
-  return url;
+async function uploadMedia(f: FilePayload): Promise<FileValue> {
+    const bytes = Uint8Array.from(atob(f.dataBase64), (ch) => ch.charCodeAt(0));
+    const blob = new Blob([bytes], {
+          type: f.mimeType || "application/octet-stream",
+    });
+    const form = new FormData();
+    form.append("file", blob, f.filename);
+    form.append("name", f.filename);
+    const res = await fetch(`${API_BASE}/medias/upload-file`, {
+          method: "POST",
+          headers: { ...authHeaders() },
+          body: form,
+    });
+    if (!res.ok) throw new Error(`File upload failed (${res.status}).`);
+    const data = await res.json();
+    const url = data?.url || data?.fileUrl;
+    if (!url) throw new Error("File upload returned no url.");
+    return {
+          url,
+          meta: {
+                  mimetype: f.mimeType || "application/octet-stream",
+                  name: f.filename,
+                  size: bytes.length,
+          },
+    };
 }
-
 async function createOpportunity(
   contactId: string,
   name: string,
