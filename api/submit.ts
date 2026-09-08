@@ -111,7 +111,6 @@ export async function POST(req: Request): Promise<Response> {
         const fileCustomFields: CustomField[] = Object.entries(filesByField).map(
                 ([id, files]) => ({ id, value: files }),
               );
-    console.error("[DEBUG] fileCustomFields:", JSON.stringify(fileCustomFields));
     // 3. Create the opportunity with all custom fields on the opportunity record.
     const allCustomFields = [...body.customFields, ...fileCustomFields];
     const opportunityId = await createOpportunity(
@@ -185,7 +184,6 @@ async function uploadMedia(f: FilePayload): Promise<FileValue> {
     if (!res.ok) throw new Error(`File upload failed (${res.status}).`);
     const data = await res.json();
     const url = data?.url || data?.fileUrl;
-  console.error("[DEBUG] uploadMedia response:", JSON.stringify(data), "url:", url);
     if (!url) throw new Error("File upload returned no url.");
     return {
           url,
@@ -201,7 +199,6 @@ async function createOpportunity(
   name: string,
   customFields: CustomField[],
 ): Promise<string> {
-  console.error("[DEBUG] createOpportunity customFields:", JSON.stringify(customFields));
   const res = await fetch(`${API_BASE}/opportunities/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -220,7 +217,6 @@ async function createOpportunity(
     throw new Error(`Opportunity creation failed (${res.status}). ${detail}`);
   }
   const data = await res.json();
-  console.error("[DEBUG] createOpportunity response customFields:", JSON.stringify(data?.opportunity?.customFields));
   const id = data?.opportunity?.id || data?.id;
   if (!id) throw new Error("Opportunity creation returned no id.");
   return id;
