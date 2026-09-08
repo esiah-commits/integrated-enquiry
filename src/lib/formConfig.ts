@@ -252,8 +252,8 @@ export const BRANCHES: Record<string, BranchDef> = {
         type: "file",
         accept: POWER_BILL_ACCEPT,
         multiple: true,
-        maxFiles: 10,
-        hint: "Optional. PDF, PNG, JPEG, JPG, DOCX, DOC, XLSX, XLS or CSV. Up to 10 files, 50 MB each.",
+                maxFiles: 50,
+                hint: "Optional. PDF, PNG, JPEG, JPG, DOCX, DOC, XLSX, XLS or CSV. Up to 50 files, 50 MB each.",
       },
       {
         key: "batteryInterest",
