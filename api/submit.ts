@@ -172,7 +172,6 @@ async function uploadMedia(f: FilePayload): Promise<string> {
   const form = new FormData();
   form.append("file", blob, f.filename);
   form.append("name", f.filename);
-  form.append("hosted", "true");
   const res = await fetch(`${API_BASE}/medias/upload-file`, {
     method: "POST",
     headers: { ...authHeaders() },
